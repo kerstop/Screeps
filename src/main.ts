@@ -1,4 +1,7 @@
 import { ErrorMapper } from "utils/ErrorMapper";
+import { Role } from "creeps/common";
+import { runSpawn } from "spawn";
+import { isWorker, runWorker } from "creeps/worker";
 
 declare global {
   /*
@@ -13,12 +16,6 @@ declare global {
   interface Memory {
     uuid: number;
     log: any;
-  }
-
-  interface CreepMemory {
-    role: string;
-    room: string;
-    working: boolean;
   }
 
   // Syntax for adding proprties to `global` (ex "global.log")
@@ -38,6 +35,27 @@ export const loop = ErrorMapper.wrapLoop(() => {
   for (const name in Memory.creeps) {
     if (!(name in Game.creeps)) {
       delete Memory.creeps[name];
+    }
+  }
+
+  for (const spawn in Game.spawns) {
+    runSpawn(Game.spawns[spawn]);
+  }
+
+  for (const key in Game.creeps) {
+    let creep = Game.creeps[key];
+    try {
+      if (isWorker(creep)) runWorker(creep);
+    } catch (error) {
+      // Catch any error so that only the one creep stops.
+
+      if (error instanceof Error) {
+        console.log(
+        `creep ${creep.name} threw the following error:\n`,
+        `${error.message}\n`,
+        `Stack Trace:\n`,
+        `${ErrorMapper.sourceMappedStackTrace(error.stack?? "")}`);
+      }
     }
   }
 });
